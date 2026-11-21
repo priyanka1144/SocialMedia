@@ -1,0 +1,15 @@
+{
+  "name": "social-media",
+  "version": "1.0.0",
+  "description": "Task 2: Social Media Platform",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^4.21.0",
+    "jsonwebtoken": "^9.0.2"
+  }
+}

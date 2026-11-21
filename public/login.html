@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Log in | adda</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="site-header" id="site-header"></header>
+  <main class="card form-card">
+    <div class="tabs">
+      <button class="tab active" id="tab-login">Log in</button>
+      <button class="tab" id="tab-register">Create account</button>
+    </div>
+    <label for="username">Username</label><input id="username" type="text" autocomplete="username">
+    <label for="password">Password</label><input id="password" type="password" autocomplete="current-password">
+    <button class="btn" id="submit" style="width:100%;margin-top:18px">Log in</button>
+    <p class="msg" id="msg"></p>
+  </main>
+  <script src="/js/common.js"></script>
+  <script>
+    let mode = "login";
+    const setMode = (m) => { mode = m;
+      $("#tab-login").classList.toggle("active", m === "login");
+      $("#tab-register").classList.toggle("active", m === "register");
+      $("#submit").textContent = m === "login" ? "Log in" : "Create account"; };
+    $("#tab-login").onclick = () => setMode("login");
+    $("#tab-register").onclick = () => setMode("register");
+    $("#submit").onclick = async () => {
+      try {
+        store.login(await api("/api/" + mode, "POST", { username: $("#username").value, password: $("#password").value }));
+        location.href = "/";
+      } catch (e) { $("#msg").textContent = e.message; }
+    };
+  </script>
+</body>
+</html>

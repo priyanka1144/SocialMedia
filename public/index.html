@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>adda | Social</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="site-header" id="site-header"></header>
+  <div class="layout">
+    <main class="stack">
+      <section class="card composer" id="composer" hidden>
+        <textarea id="content" maxlength="300" placeholder="What's on your mind?" aria-label="New post"></textarea>
+        <div class="row"><span class="counter" id="counter">0 / 280</span><button class="btn" id="postBtn">Post</button></div>
+      </section>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-feed="all">Everyone</button>
+        <button class="tab" data-feed="following" id="followingTab" hidden>Following</button>
+      </div>
+      <div id="feed" class="stack"></div>
+    </main>
+    <aside class="side stack">
+      <div class="card">
+        <h3>Find people</h3>
+        <input class="search" id="search" type="text" placeholder="Search by username" aria-label="Search users">
+        <div id="results"></div>
+      </div>
+      <div class="card" id="suggestBox" hidden><h3>Who to follow</h3><div id="suggest"></div></div>
+    </aside>
+  </div>
+  <script src="/js/common.js"></script>
+  <script>
+    let feed = "all";
+    const loggedIn = !!store.token;
+    if (loggedIn) { $("#composer").hidden = false; $("#followingTab").hidden = false; $("#suggestBox").hidden = false; }
+
+    async function loadFeed() {
+      const posts = await api("/api/posts?feed=" + feed);
+      renderPosts($("#feed"), posts, loadFeed);
+      if (feed === "following" && !posts.length)
+        $("#feed").innerHTML = `<div class="empty">Follow people to see their posts here.</div>`;
+    }
+    document.querySelectorAll(".tab").forEach((t) => t.onclick = () => {
+      document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
+      t.classList.add("active"); feed = t.dataset.feed; loadFeed();
+    });
+
+    $("#content").oninput = () => {
+      const n = $("#content").value.length;
+      $("#counter").textContent = n + " / 280"; $("#counter").classList.toggle("over", n > 280);
+      $("#postBtn").disabled = n > 280;
+    };
+    $("#postBtn").onclick = async () => {
+      try { await api("/api/posts", "POST", { content: $("#content").value });
+        $("#content").value = ""; $("#counter").textContent = "0 / 280"; toast("Posted"); loadFeed();
+      } catch (e) { toast(e.message); }
+    };
+
+    function personHTML(u, withFollow) {
+      return `<div class="person">${avatar(u.username)}
+        <div class="meta"><a href="/profile.html?id=${u.id}"><b>@${esc(u.username)}</b></a><small>${esc(u.bio || "")}</small></div>
+        ${withFollow ? `<button class="btn" data-f="${u.id}">Follow</button>` : ""}</div>`;
+    }
+    function bindFollow(root) {
+      root.querySelectorAll("[data-f]").forEach((b) => b.onclick = async () => {
+        await toggleFollow(b.dataset.f, b); loadFeed();
+      });
+    }
+    async function loadSuggestions() {
+      if (!loggedIn) return;
+      const list = await api("/api/suggestions");
+      $("#suggest").innerHTML = list.length ? list.map((u) => personHTML(u, true)).join("") : `<div class="empty" style="padding:8px">You're following everyone.</div>`;
+      bindFollow($("#suggest"));
+    }
+    let timer;
+    $("#search").oninput = () => {
+      clearTimeout(timer);
+      timer = setTimeout(async () => {
+        const q = $("#search").value.trim();
+        const list = q ? await api("/api/users?q=" + encodeURIComponent(q)) : [];
+        $("#results").innerHTML = q && !list.length ? `<div class="empty" style="padding:8px">No users found.</div>` : list.map((u) => personHTML(u, false)).join("");
+      }, 250);
+    };
+    loadFeed(); loadSuggestions();
+  </script>
+</body>
+</html>

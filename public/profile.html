@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Profile | adda</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="site-header" id="site-header"></header>
+  <div class="layout" style="grid-template-columns:1fr;max-width:680px">
+    <main class="stack">
+      <section class="card" id="profile"></section>
+      <h3 style="margin:8px 0 0">Posts</h3>
+      <div id="feed" class="stack"></div>
+    </main>
+  </div>
+  <script src="/js/common.js"></script>
+  <script>
+    const id = new URLSearchParams(location.search).get("id");
+    const me = store.user;
+
+    async function loadProfile() {
+      let u;
+      try { u = await api("/api/users/" + id); }
+      catch (e) { $("#profile").innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
+      document.title = "@" + u.username + " | adda";
+      const mine = me && me.id === u.id;
+      $("#profile").innerHTML = `
+        <div class="profile-top">${avatar(u.username, "lg")}
+          <div style="flex:1;min-width:200px">
+            <h1>@${esc(u.username)}</h1>
+            <div class="stats">
+              <div><b>${u.posts}</b><span>posts</span></div>
+              <div><b id="fers">${u.followers}</b><span>followers</span></div>
+              <div><b>${u.following}</b><span>following</span></div>
+            </div>
+            <p id="bioText" style="margin:6px 0;color:var(--muted)">${esc(u.bio) || (mine ? "Add a short bio." : "No bio yet.")}</p>
+          </div>
+          ${mine ? `<button class="btn ghost" id="editBio">Edit bio</button>`
+                 : `<button class="btn ${u.isFollowing ? "ghost" : ""}" id="followBtn">${u.isFollowing ? "Following" : "Follow"}</button>`}
+        </div>
+        <div class="bio-edit" id="bioForm" hidden>
+          <textarea id="bio" maxlength="160" rows="2" aria-label="Bio">${esc(u.bio)}</textarea>
+          <button class="btn" id="saveBio" style="margin-top:8px">Save bio</button>
+        </div>`;
+      if (mine) {
+        $("#editBio").onclick = () => { $("#bioForm").hidden = !$("#bioForm").hidden; };
+        $("#saveBio").onclick = async () => {
+          try { await api("/api/me", "PUT", { bio: $("#bio").value }); toast("Bio saved"); loadProfile(); } catch (e) { toast(e.message); }
+        };
+      } else {
+        $("#followBtn").onclick = async (ev) => {
+          const r = await toggleFollow(id, ev.target);
+          if (r) $("#fers").textContent = Number($("#fers").textContent) + (r.following ? 1 : -1);
+        };
+      }
+    }
+    async function loadPosts() { renderPosts($("#feed"), await api("/api/posts?user=" + id), loadPosts); }
+    loadProfile(); loadPosts();
+  </script>
+</body>
+</html>
