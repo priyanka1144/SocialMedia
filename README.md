@@ -23,4 +23,4 @@ npm start
 Open http://localhost:3000
 
 ## Screenshots
-Add your screenshots here.
+![EcommerceStore Screenshot](Pic-2.png)
